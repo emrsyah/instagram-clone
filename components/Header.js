@@ -9,13 +9,19 @@ import {
 } from "@heroicons/react/outline";
 
 import { HomeIcon } from "@heroicons/react/solid";
+import { signIn, signOut, useSession } from "next-auth/react";
+import { useRouter } from "next/router";
 
 function Header() {
+  const { data: session } = useSession();
+  const router = useRouter();
+
   return (
     <div className="shadow-sm border-b bg-white sticky top-0 z-50">
       <div className="flex justify-between bg-white max-w-6xl mx-5 lg:mx-auto">
         {/* Left */}
-        <div className="relative w-24 hidden lg:inline-grid cursor-pointer">
+        <div className="relative w-24 hidden lg:inline-grid cursor-pointer"
+        onClick={()=>router.push('/')}>
           <Image
             src="https:/links.papareact.com/ocw"
             layout="fill"
@@ -23,7 +29,8 @@ function Header() {
             objectFit="contain"
           />
         </div>
-        <div className="relative w-10 lg:hidden flex-shrink-0 cursor-pointer">
+        <div className="relative w-10 lg:hidden flex-shrink-0 cursor-pointer"
+        onClick={()=>router.push('/')}>
           <Image
             src="https:/links.papareact.com/jjm"
             layout="fill"
@@ -51,20 +58,31 @@ function Header() {
 
         {/* Right */}
         <div className="flex items-center justify-end space-x-4">
-          <HomeIcon className="navBtn" />
+          <HomeIcon className="navBtn"
+          onClick={()=>router.push('/')} />
           <MenuIcon className="h-6 md:hidden cursor-pointer" />
-          <div className="relative navBtn">
-            <PaperAirplaneIcon className="navBtn rotate-45" />
-            <div className="absolute -top-2 -right-2 text-xs w-5 h-5 bg-red-500 rounded-full items-center flex justify-center text-white animate-pulse">3</div>
-          </div>
-          <PlusCircleIcon className="navBtn" />
-          <UserGroupIcon className="navBtn" />
-          <HeartIcon className="navBtn" />
-          <img
-            src="https://external-content.duckduckgo.com/iu/?u=http%3A%2F%2Fwww.detectiveconanworld.com%2Fwiki%2Fimages%2Farchive%2F6%2F60%2F20140714012314!Conan_Edogawa_Profile.jpg&f=1&nofb=1"
-            alt="profile pic"
-            className="h-10 w-10 rounded-full cursor-pointer"
-          />
+          {session ? (
+            <>
+              <div className="relative navBtn">
+                <PaperAirplaneIcon className="navBtn rotate-45" />
+                <div className="absolute -top-2 -right-2 text-xs w-5 h-5 bg-red-500 rounded-full items-center flex justify-center text-white animate-pulse">
+                  3
+                </div>
+              </div>
+              <PlusCircleIcon className="navBtn" />
+              <UserGroupIcon className="navBtn" />
+              <HeartIcon className="navBtn" />
+
+              <img
+                onClick={signOut}
+                src={session.user.image}
+                alt="profile pic"
+                className="h-10 w-10 rounded-full cursor-pointer"
+              />
+            </>
+          ) : (
+            <button onClick={signIn}>Sign In</button>
+          )}
         </div>
       </div>
     </div>
