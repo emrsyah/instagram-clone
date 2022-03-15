@@ -28,7 +28,7 @@ function signin({ providers }) {
   );
 }
 
-// Middle Server
+// Get Provider in Middle Server
 export async function getServerSideProps() {
   const providers = await getProviders();
 
