@@ -14,7 +14,6 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { useSession } from "next-auth/react";
-
 import { ref, getDownloadURL, uploadString } from "firebase/storage";
 
 function Modal() {
