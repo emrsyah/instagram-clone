@@ -5,34 +5,70 @@ import { Dialog, Transition } from "@headlessui/react";
 import { Fragment } from "react";
 import { CameraIcon } from "@heroicons/react/outline";
 import { useState, useRef } from "react";
+import { firestoreDb, storage } from "../firebase";
+import {
+  addDoc,
+  collection,
+  doc,
+  serverTimestamp,
+  updateDoc,
+} from "firebase/firestore";
+import { useSession } from "next-auth/react";
+
+import { ref, getDownloadURL, uploadString } from "firebase/storage";
 
 function Modal() {
   const [open, setOpen] = useRecoilState(modalState);
+  const { data: session } = useSession();
 
-  const [selectedFile, setSelectedFile] = useState(null)
-  const [loading, setLoading] = useState(false)
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   //ini dipake nanti buat reference ke input file dari ikon kamera
-  const filePickerRef = useRef(null)
-  const captionRef = useRef(null)
+  const filePickerRef = useRef(null);
+  // ini kita pake ref buat ambil caption waktu upload ke firebase, jadi gak usah di store ke state dulu.
+  const captionRef = useRef(null);
 
-  const uploadPost = async () =>{
-    if(loading) return;
-    setLoading(true)
+  const uploadPost = async () => {
+    if (loading) return;
+    setLoading(true);
 
-    
+    // * add dokumen ke firestore, no post image yet
+    const docRef = await addDoc(collection(firestoreDb, "posts"), {
+      username: session.user.username,
+      caption: captionRef.current.value,
+      profileImg: session.user.image,
+      timestamp: serverTimestamp(),
+    });
+    console.log("new doc added in ", docRef.id);
 
-  }
+    // * buat referensi ke path di firebase storage kita
+    const imageRef = ref(storage, `posts/${docRef.id}/image`);
+    // * upload image, ambil url downloadnya, update doc dengan atribut image isinya url download.
+    await uploadString(imageRef, selectedFile, "data_url").then(
+      async (snapshot) => {
+        const downloadURL = await getDownloadURL(imageRef);
+        await updateDoc(doc(firestoreDb, "posts", docRef.id), {
+          image: downloadURL,
+        });
+        console.log("selesai");
+      }
+    );
 
-  const addImageToPost = (ev) =>{
+    setOpen(false);
+    setLoading(false);
+    setSelectedFile(null);
+  };
+
+  const addImageToPost = (ev) => {
     const reader = new FileReader();
-    if(ev.target.files[0]){
-        reader.readAsDataURL(ev.target.files[0]);
+    if (ev.target.files[0]) {
+      reader.readAsDataURL(ev.target.files[0]);
     }
-    reader.onload = (readerEvent) =>{
-        setSelectedFile(readerEvent.target.result);
-    }
-  }
+    reader.onload = (readerEvent) => {
+      setSelectedFile(readerEvent.target.result);
+    };
+  };
 
   return (
     <Transition.Root show={open} as={Fragment}>
@@ -75,22 +111,25 @@ function Modal() {
           >
             <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-sm sm:w-full sm:p-6">
               <div>
-
                 {/* Ini if check buat render preview img kalo misalnya udh ada file yg dipilih, dan akan nge render input berupa ikon kamera misalnya belum */}
-                {selectedFile ?(
-                    <img src={selectedFile} onClick={()=> setSelectedFile(null)} alt=""
-                    className="w-full object-contain cursor-pointer" />
-                ):(
-                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 cursor-pointer"
-                onClick={()=>filePickerRef.current.click()}>
-                  <CameraIcon
-                    className="h-6 w-6 text-red-600"
-                    aria-hidden="true"
+                {selectedFile ? (
+                  <img
+                    src={selectedFile}
+                    onClick={() => setSelectedFile(null)}
+                    alt=""
+                    className="w-full object-contain cursor-pointer"
                   />
-                </div>
-
-                ) }
-
+                ) : (
+                  <div
+                    className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 cursor-pointer"
+                    onClick={() => filePickerRef.current.click()}
+                  >
+                    <CameraIcon
+                      className="h-6 w-6 text-red-600"
+                      aria-hidden="true"
+                    />
+                  </div>
+                )}
 
                 {/* Kata-kata dan input file + caption */}
                 <div>
@@ -132,12 +171,14 @@ function Modal() {
                   <button
                     type="button"
                     //   disabled={!selectedFile}
-                    className="inline-flex justify-center w-full rounded-md border border-transparent shadow-sm px-4
+                    onClick={uploadPost}
+                    disabled={!selectedFile}
+                    className="inline-flepfix justify-center w-full rounded-md border border-transparent shadow-sm px-4
                       py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none
                       focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm disabled:bg-gray-300 disabled:cursor-not-allowed
                       hover:disabled:bg-gray-300"
                   >
-                    Upload Post
+                    {loading ? "Uploading..." : "Upload Post"}
                   </button>
                 </div>
               </div>

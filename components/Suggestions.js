@@ -8,7 +8,6 @@ function Suggestions() {
     const suggestion = randUser({ length: 5 });
     setSuggestions(suggestion);
   }, []);
-  console.log(suggestions)
   return (
     <div className="mt-6 ml-10">
       <div className="flex justify-between text-sm mb-5">

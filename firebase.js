@@ -19,8 +19,8 @@ const firebaseConfig = {
 // * Get Apps fungsinya buat cek apakah kita pernah inisialisasi sebelumnya, kalo belum maka kita inisiasi
 // * sekarang, kalo udah ada maka kita pake getApp() buat ambil yang sebelumnya.
 // * ini dipakenya untuk next js karena ssr
-const app = !getApps.length()?  initializeApp(firebaseConfig) : getApp();
-const db = getFirestore();
+const app = getApps.length === 0 ?  initializeApp(firebaseConfig) : getApp();
+const firestoreDb = getFirestore();
 const storage = getStorage();
 
-export {app, db, storage};
+export {app, firestoreDb, storage};
