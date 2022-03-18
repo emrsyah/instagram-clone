@@ -11,10 +11,13 @@ import { HeartIcon as HeartIconFilled } from "@heroicons/react/solid";
 import {
   addDoc,
   collection,
+  deleteDoc,
+  doc,
   onSnapshot,
   orderBy,
   query,
   serverTimestamp,
+  setDoc,
 } from "firebase/firestore";
 import { useSession } from "next-auth/react";
 import { useState, useEffect } from "react";
@@ -26,6 +29,9 @@ function Post({ id, username, userImg, img, caption }) {
   // comment = buat send, comments = fetch data buat ditampilin
   const [comment, setComment] = useState("");
   const [comments, setComments] = useState([]);
+  const [like, setLike] = useState("");
+  const [likes, setLikes] = useState([]);
+  const [hasLiked, setHasLiked] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(
@@ -38,7 +44,7 @@ function Post({ id, username, userImg, img, caption }) {
       }
     );
     return unsubscribe;
-  }, [firestoreDb]);
+  }, [id, firestoreDb]);
 
   // * alternatif lebih dikit line codenya tapi jadi kurang readable:
   // * useEffect(
@@ -52,6 +58,36 @@ function Post({ id, username, userImg, img, caption }) {
   // *    ),
   // *  [firestoreDb]
   // * );
+
+  useEffect(
+    () =>
+      onSnapshot(collection(firestoreDb, "posts", id, "likes"), (snapshot) => {
+        setLikes(snapshot.docs);
+      }),
+    [id, firestoreDb]
+  );
+
+  // console.log(likes[0]?.id)
+
+  useEffect(
+    () =>
+      setHasLiked(
+        likes.findIndex((like) => like.id === session?.user?.uid) !== -1
+      ),
+    [likes, session]
+  );
+
+  const likePost = async () => {
+    if (hasLiked) {
+      await deleteDoc(doc(firestoreDb, "posts", id, "likes", session.user.uid));
+    } else {
+      await setDoc(doc(firestoreDb, "posts", id, "likes", session.user.uid), {
+        username: session.user.username,
+      });
+    }
+  };
+
+  // console.log(hasLiked)
 
   const sendComment = async (ev) => {
     ev.preventDefault();
@@ -86,7 +122,14 @@ function Post({ id, username, userImg, img, caption }) {
       {session && (
         <div className="flex justify-between px-4 pt-4">
           <div className="flex space-x-4">
-            <HeartIcon className="btn" />
+            {hasLiked ? (
+              <HeartIconFilled
+                onClick={likePost}
+                className="btn text-red-500"
+              />
+            ) : (
+              <HeartIcon onClick={likePost} className="btn" />
+            )}
             <ChatIcon className="btn" />
             <PaperAirplaneIcon className="btn" />
           </div>
@@ -96,6 +139,9 @@ function Post({ id, username, userImg, img, caption }) {
 
       {/* Caption */}
       <p className="p-5 truncate">
+        {likes.length > 0 && (
+          <p className="font-semibold mr-1">{likes.length} likes</p>
+        )}
         <span className="font-semibold mr-1">{username}</span>
         {caption}
       </p>
@@ -111,13 +157,14 @@ function Post({ id, username, userImg, img, caption }) {
                 alt=""
               />
               <p className="text-sm flex-1">
-                <span className="font-semibold">{comment.data().username} </span>
+                <span className="font-semibold">
+                  {comment.data().username}{" "}
+                </span>
                 {comment.data().comment}
               </p>
               <Moment fromNow className="pr-5 text-xs">
                 {comment.data().timestamp?.toDate()}
               </Moment>
-
             </div>
           ))}
         </div>
