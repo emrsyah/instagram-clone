@@ -8,10 +8,64 @@ import {
 } from "@heroicons/react/outline";
 
 import { HeartIcon as HeartIconFilled } from "@heroicons/react/solid";
+import {
+  addDoc,
+  collection,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+} from "firebase/firestore";
 import { useSession } from "next-auth/react";
+import { useState, useEffect } from "react";
+import { firestoreDb } from "../firebase";
+import Moment from "react-moment";
 
 function Post({ id, username, userImg, img, caption }) {
   const { data: session } = useSession();
+  // comment = buat send, comments = fetch data buat ditampilin
+  const [comment, setComment] = useState("");
+  const [comments, setComments] = useState([]);
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(
+      query(
+        collection(firestoreDb, "posts", id, "comments"),
+        orderBy("timestamp", "desc")
+      ),
+      (snapshot) => {
+        setComments(snapshot.docs);
+      }
+    );
+    return unsubscribe;
+  }, [firestoreDb]);
+
+  // * alternatif lebih dikit line codenya tapi jadi kurang readable:
+  // * useEffect(
+  // * () =>
+  // *   onSnapshot(
+  // *      query(
+  // *        collection(firestoreDb, "posts", id, "comments"),
+  // *        orderBy("timestamp", "desc")
+  // *      ),
+  // *      (snapshot) => setComments(snapshot.docs)
+  // *    ),
+  // *  [firestoreDb]
+  // * );
+
+  const sendComment = async (ev) => {
+    ev.preventDefault();
+    const commentToSend = comment;
+    setComment("");
+
+    await addDoc(collection(firestoreDb, "posts", id, "comments"), {
+      comment: commentToSend,
+      username: session.user.username,
+      userImage: session.user.image,
+      timestamp: serverTimestamp(),
+    });
+  };
+
   return (
     <div className="bg-white my-7 border rounded-sm">
       {/* Header */}
@@ -47,6 +101,27 @@ function Post({ id, username, userImg, img, caption }) {
       </p>
 
       {/* Comments */}
+      {comments.length > 0 && (
+        <div className="ml-10 h-20 overflow-y-scroll scrollbar-thumb-black scrollbar-thin">
+          {comments.map((comment) => (
+            <div key={comment.id} className="flex space-x-2 items-center mb-3">
+              <img
+                className="h-7 rounded-full"
+                src={comment.data().userImage}
+                alt=""
+              />
+              <p className="text-sm flex-1">
+                <span className="font-semibold">{comment.data().username} </span>
+                {comment.data().comment}
+              </p>
+              <Moment fromNow className="pr-5 text-xs">
+                {comment.data().timestamp?.toDate()}
+              </Moment>
+
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Input Box */}
       {session && (
@@ -54,10 +129,19 @@ function Post({ id, username, userImg, img, caption }) {
           <EmojiHappyIcon className="h-7" />
           <input
             type="text"
+            value={comment}
+            onChange={(ev) => setComment(ev.target.value)}
             className="border-none flex-1 focus:ring-0 outline-none"
             placeholder="Add a comment ..."
           />
-          <button className="font-semibold text-blue-400">Post</button>
+          <button
+            type="submit"
+            disabled={!comment.trim()}
+            onClick={sendComment}
+            className="font-semibold text-blue-400"
+          >
+            Post
+          </button>
         </form>
       )}
     </div>
