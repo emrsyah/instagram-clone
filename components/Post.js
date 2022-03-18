@@ -29,7 +29,6 @@ function Post({ id, username, userImg, img, caption }) {
   // comment = buat send, comments = fetch data buat ditampilin
   const [comment, setComment] = useState("");
   const [comments, setComments] = useState([]);
-  const [like, setLike] = useState("");
   const [likes, setLikes] = useState([]);
   const [hasLiked, setHasLiked] = useState(false);
 
