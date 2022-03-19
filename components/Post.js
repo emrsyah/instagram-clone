@@ -32,6 +32,7 @@ function Post({ id, username, userImg, img, caption }) {
   const [likes, setLikes] = useState([]);
   const [hasLiked, setHasLiked] = useState(false);
 
+  // * yang useEffect ini bisa pake bentuk useEffect bawah, tapi less readable aja
   useEffect(() => {
     const unsubscribe = onSnapshot(
       query(
@@ -44,19 +45,6 @@ function Post({ id, username, userImg, img, caption }) {
     );
     return unsubscribe;
   }, [id, firestoreDb]);
-
-  // * alternatif lebih dikit line codenya tapi jadi kurang readable:
-  // * useEffect(
-  // * () =>
-  // *   onSnapshot(
-  // *      query(
-  // *        collection(firestoreDb, "posts", id, "comments"),
-  // *        orderBy("timestamp", "desc")
-  // *      ),
-  // *      (snapshot) => setComments(snapshot.docs)
-  // *    ),
-  // *  [firestoreDb]
-  // * );
 
   useEffect(
     () =>
